@@ -13,12 +13,11 @@
 @interface MoviesViewController () <UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate>
 
 @property (nonatomic, strong) NSArray *movies;
+@property (nonatomic, strong) NSArray *filteredMovies;
 @property (strong, nonatomic) IBOutlet UITableView *tableView;
 @property (nonatomic, strong) UIRefreshControl *refreshControl;
 @property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
 @property (weak, nonatomic) IBOutlet UISearchBar *searchBar;
-@property (nonatomic, strong) NSArray *filteredMovies;
-
 
 @end
 
@@ -47,16 +46,18 @@
 }
 
 - (void)fetchMovies {
+    // start loading state
     [self.tableView addSubview:self.activityIndicator];
     [self.activityIndicator startAnimating];
     self.tableView.alpha = .8;
 
-    // code copied from codepath that sends and processes API get request
+    // send and process API request
     NSURL *url = [NSURL URLWithString:@"https://api.themoviedb.org/3/movie/now_playing?api_key=a07e22bc18f5cb106bfe4cc1f83ad8ed"];
     NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0];
     NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration] delegate:nil delegateQueue:[NSOperationQueue mainQueue]];
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-           if (error != nil) {
+        // error popup if request errors
+        if (error != nil) {
                UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Cannot Get Movies"
                  message:@"The Internet connection appears to be offline" preferredStyle:(UIAlertControllerStyleAlert)];
                
@@ -69,9 +70,7 @@
                [alert addAction:tryAgain];
                [self presentViewController:alert animated:YES completion:^{
                }];
-           }
-        // if JSON is properly returned
-           else {
+           } else { // parse data if properly returned
                NSDictionary *dataDictionary = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
                               
                self.movies = dataDictionary[@"results"];
@@ -88,21 +87,14 @@
 
 // updating filtered movies whenever text is put into search bar
 - (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
-    self.filteredMovies = self.movies;
     if (searchText.length != 0) {
-        
         NSPredicate *predicate = [NSPredicate predicateWithFormat:@"(title CONTAINS[cd] %@)", searchText];
         self.filteredMovies = [self.movies filteredArrayUsingPredicate:predicate];
-                
-    }
-    else {
+    } else {
         self.filteredMovies = self.movies;
     }
-    
     [self.tableView reloadData];
- 
 }
-
 
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
@@ -132,11 +124,8 @@
 
 #pragma mark - Navigation
 
-// In a storyboard-based application, you will often want to do a little preparation before navigation
-// Function called when moving towards the next screen
+// set movie for detaiViewController to prep for segue
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
-//     Get the new view controller using [segue destinationViewController].
-//     Pass the selected object to the new view controller.
     UITableViewCell *tappedCell = sender;
     NSIndexPath *indexPath = [self.tableView indexPathForCell:tappedCell];
     NSDictionary *movie = self.movies[indexPath.row];

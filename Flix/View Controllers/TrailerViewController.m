@@ -18,7 +18,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self fetchTrailer];
-    // Do any additional setup after loading the view.
 }
 - (IBAction)didTapExit:(UIButton *)sender {
     [self dismissViewControllerAnimated:YES completion:nil];
@@ -29,27 +28,21 @@
     NSString *stringMovieID = [self.movie[@"id"] stringValue];
     NSString *urlString = [NSString stringWithFormat:@"https://api.themoviedb.org/3/movie/%@/videos?api_key=a07e22bc18f5cb106bfe4cc1f83ad8ed", stringMovieID];
     NSURL *url = [NSURL URLWithString:urlString];
-    
     NSURLRequest *request = [NSURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:10.0];
     NSURLSession *session = [NSURLSession sessionWithConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration] delegate:nil delegateQueue:[NSOperationQueue mainQueue]];
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-           if (error != nil) {
-               UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Cannot Get Trailer"
-                 message:@"The Internet connection appears to be offline" preferredStyle:(UIAlertControllerStyleAlert)];
-
-               // create a try again action
-               UIAlertAction *tryAgain = [UIAlertAction actionWithTitle:@"Try Again" style:UIAlertActionStyleDefault
-                    handler:^(UIAlertAction * _Nonnull action) {
-                   [self fetchTrailer];
-                }];
-               // add the try again action to the alert controller
-               [alert addAction:tryAgain];
-               [self presentViewController:alert animated:YES completion:^{
-
-               }];
-           }
-//        // if JSON is properly returned
-           else {
+        // error popup if request errors
+        if (error != nil) {
+           UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Cannot Get Trailer"
+             message:@"The Internet connection appears to be offline" preferredStyle:(UIAlertControllerStyleAlert)];
+           UIAlertAction *tryAgain = [UIAlertAction actionWithTitle:@"Try Again" style:UIAlertActionStyleDefault
+                handler:^(UIAlertAction * _Nonnull action) {
+               [self fetchTrailer];
+            }];
+           [alert addAction:tryAgain];
+           [self presentViewController:alert animated:YES completion:^{
+           }];
+        } else { // parse data if properly returned
                NSDictionary *dataDictionary = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
                NSArray *videos = dataDictionary[@"results"];
                NSDictionary *trailer = videos[0];
