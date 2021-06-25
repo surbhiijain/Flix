@@ -10,12 +10,14 @@
 #import "UIImageView+AFNetworking.h"
 #import "DetailsViewController.h"
 
-@interface MoviesViewController () <UITableViewDataSource, UITableViewDelegate>
+@interface MoviesViewController () <UITableViewDataSource, UITableViewDelegate, UISearchBarDelegate>
 
 @property (nonatomic, strong) NSArray *movies;
 @property (strong, nonatomic) IBOutlet UITableView *tableView;
 @property (nonatomic, strong) UIRefreshControl *refreshControl;
-@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *activityIndicator;
+@property (nonatomic, strong) UIActivityIndicatorView *activityIndicator;
+@property (weak, nonatomic) IBOutlet UISearchBar *searchBar;
+@property (nonatomic, strong) NSArray *filteredMovies;
 
 
 @end
@@ -27,17 +29,27 @@
     
     self.tableView.dataSource = self;
     self.tableView.delegate = self;
+    self.searchBar.delegate = self;
     
-    // Do any additional setup after loading the view.
     [self fetchMovies];
+    
     self.refreshControl = [[UIRefreshControl alloc] init];
+    self.activityIndicator = [[UIActivityIndicatorView alloc]initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleLarge];
+    self.activityIndicator.frame = CGRectMake(round((self.view.frame.size.width - 25) / 2), round((self.view.frame.size.height - 25) / 2), 75, 75);
+    self.activityIndicator.center = self.view.center;
+    self.activityIndicator.color = [UIColor whiteColor];
+    self.activityIndicator.backgroundColor = [UIColor lightGrayColor];
+    self.activityIndicator.layer.cornerRadius = 10;
+    
     // control the function the refreshControl calls with it enters the refreshing state
     [self.refreshControl addTarget:self action:@selector(fetchMovies) forControlEvents:(UIControlEventValueChanged)];
     [self.tableView insertSubview:self.refreshControl atIndex:0];
 }
 
 - (void)fetchMovies {
+    [self.tableView addSubview:self.activityIndicator];
     [self.activityIndicator startAnimating];
+    self.tableView.alpha = .8;
 
     // code copied from codepath that sends and processes API get request
     NSURL *url = [NSURL URLWithString:@"https://api.themoviedb.org/3/movie/now_playing?api_key=a07e22bc18f5cb106bfe4cc1f83ad8ed"];
@@ -63,6 +75,7 @@
                NSDictionary *dataDictionary = [NSJSONSerialization JSONObjectWithData:data options:NSJSONReadingMutableContainers error:nil];
                               
                self.movies = dataDictionary[@"results"];
+               self.filteredMovies = self.movies;
                
                // reload table once data is actually received
                [self.tableView reloadData];
@@ -73,14 +86,33 @@
     [task resume];
 }
 
+// updating filtered movies whenever text is put into search bar
+- (void)searchBar:(UISearchBar *)searchBar textDidChange:(NSString *)searchText {
+    self.filteredMovies = self.movies;
+    if (searchText.length != 0) {
+        
+        NSPredicate *predicate = [NSPredicate predicateWithFormat:@"(title CONTAINS[cd] %@)", searchText];
+        self.filteredMovies = [self.movies filteredArrayUsingPredicate:predicate];
+                
+    }
+    else {
+        self.filteredMovies = self.movies;
+    }
+    
+    [self.tableView reloadData];
+ 
+}
+
+
+
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.movies.count;
+    return self.filteredMovies.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     MovieCell *cell = [tableView dequeueReusableCellWithIdentifier:@"MovieCell"];
     
-    NSDictionary *movie = self.movies[indexPath.row];
+    NSDictionary *movie = self.filteredMovies[indexPath.row];
     cell.titleLable.text = movie[@"title"];
     cell.synopsisLabel.text = movie[@"overview"];
 
@@ -93,7 +125,7 @@
     cell.posterView.image = nil;
     [cell.posterView setImageWithURL:posterURL];
     [self.activityIndicator stopAnimating];
-
+    self.tableView.alpha = 1;
     return cell;
 }
     
