@@ -131,7 +131,7 @@
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
     UICollectionViewCell *tappedCell = sender;
     NSIndexPath *indexPath = [self.collectionView indexPathForCell:tappedCell];
-    NSDictionary *movie = self.movies[indexPath.item];
+    NSDictionary *movie = self.filteredMovies[indexPath.item];
     DetailsViewController *detailViewController = [segue destinationViewController];
     detailViewController.movie = movie;
 }
